@@ -1,101 +1,143 @@
-<div align="center">
-    <img src="https://raw.githubusercontent.com/SimGus/chrome-addon-v3-starter/master/logo/logo-128.png"/>
-    <h1>Chrome Extension v3 Starter</h1>
-    <h3>A minimal template of a Chrome v3 addon</h3>
-</div>
+# Gmail Deep Link Copier
 
-This repository contains a minimal Chrome/Chromium extension that uses the newest version of the manifest (v3).
+A Chrome extension that adds "⧉ Copy link" buttons in Gmail to copy deep links to specific messages using their RFC822 Message-ID.
 
-You can use it as a basis to develop an extension.
-It can also give you more insights about how to turn a v2 extension to v3.
+## What it does
 
-In other words, this is a **working, installable v3 extension** example meant for you to **jumpstart** the development of your own extension.
-
+- **Injects buttons in Gmail** on mail.google.com in two places:
+  - Next to each message bubble in conversation view
+  - Next to each thread row in list view
+- **Creates stable deep links** using Gmail's `#search/rfc822msgid:` URL format
+- **Works across accounts** - links don't include `/u/0` so they work regardless of account index
+- **Uses Gmail API** to fetch Message-ID headers via OAuth (read-only access)
 
 ## Installation
-- **Fork** this repo, then **clone your forked repo locally**. If you don't have a github account, you can simply download a zip of the repo and unzip it on your computer.
-- **Open [the extensions page](chrome://extensions)** in your browser: `chrome://extensions`. This link works on any chromium-based browser.
-- If you did not do it already, **toggle the "developer mode"**. This is usually a toggle button at the top right of the extensions page.
-- Click the button **_load unpacked extension_**.
-- In the window that pops up, **select the folder that contains this minimal extension**, then **click _ok_**.
-- **Done!** A new extension called _Chrome Addon v3 Starter_ should have appeared in the list.
 
-## Q&A
-> Does this work only on Chrome or on **other web browsers** as well?
+### 1. Set up OAuth credentials
 
-At the moment, this works on every chromium-based web browser that supports v3 extensions.
-Therefore, you should be able to install this extension on any of the following browsers (as long as they are up-to-date):
-- _Free and open-source browsers_:
-    - Chromium
-    - Brave
-- _Proprietary browsers_:
-    - Chrome
-    - Edge
-    - Vivaldi
-    - Opera
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or select existing)
+3. Enable the **Gmail API**
+4. Go to **Credentials** → Create **OAuth 2.0 Client ID**
+5. Choose **Chrome Extension** as application type
+6. Set **Authorized redirect URI** to:
+   ```
+   https://<YOUR_EXTENSION_ID>.chromiumapp.org/
+   ```
+   (You'll get the extension ID after loading it in Chrome - see step 2.5)
+7. Copy the **Client ID**
 
-> So it doesn't work on **Firefox** or **Safari**?
+### 2. Install the extension
 
-No, Firefox uses a different extension format. That being said, it is usually not too hard to port extensions from Chrome to Firefox.
-Read [their porting documentation](https://extensionworkshop.com/documentation/develop/porting-a-google-chrome-extension/) for more information.
+1. Clone this repository
+2. Open `manifest.json` and replace `__REPLACE_WITH_OAUTH_CLIENT_ID__` with your OAuth Client ID
+3. Open Chrome and go to `chrome://extensions`
+4. Enable **Developer mode** (toggle in top right)
+5. Click **Load unpacked** and select this folder
+6. Copy the **Extension ID** from the card
+7. Go back to Google Cloud Console → Credentials and update the redirect URI with your actual extension ID
+8. Reload the extension in Chrome
 
-Safari uses yet another extension format and porting is usually harder.
-You can find more information [here](https://bartsolutions.github.io/2020/11/20/safari-extension/).
+### 3. Test it
 
-> Does this work on **Chrome for Android/iOS**?
+1. Open [Gmail](https://mail.google.com)
+2. You should see "⧉ Copy link" buttons next to messages and threads
+3. Click a button - you'll be prompted to authorize the extension (first time only)
+4. After authorization, click again to copy the deep link
+5. Paste the link in a new tab - it should open the exact message
 
-Chrome for mobile doesn't currently support extensions.
+## How it works
 
-> I don't need a **popup tool** for my extension! Can I remove it?
+### Link format
 
-Yes, simply delete the `popup` folder and remove the `default_popup` property from the manifest.
+Deep links use Gmail's RFC822 Message-ID search:
+```
+https://mail.google.com/mail/#search/rfc822msgid%3A<message-id>
+```
 
-> I changed some code in the extension, but my **changes aren't taken into account**!
+Example:
+```
+https://mail.google.com/mail/#search/rfc822msgid%3ACAH%3Dj8u4kZ...%40mail.gmail.com
+```
 
-For most of the changes you make, you will need to reload your extension for the changes to be applied.
-To do that, go to the chrome://extensions page and click the reload button of your extension.
-Note that most of the changes you will make to the settings page or the popup don't require reloading the extension.
+### Architecture
 
-> Can I follow a **tutorial about a v2 extension** with this?
+- **content.js** - Observes Gmail DOM and injects buttons
+- **service-worker.js** - Handles OAuth and Gmail API calls
+- **Message flow:**
+  1. User clicks "⧉ Copy link" button
+  2. Content script sends message to service worker with Gmail message/thread ID
+  3. Service worker fetches Message-ID header via Gmail API
+  4. Service worker builds and returns deep link URL
+  5. Content script copies to clipboard and shows toast
 
-Most of what you will find in those tutorials still holds with v3.
+### Permissions
 
-However, a few things (notably best practices) have changed.
-You should read the [official migration page (v2 to v3)](https://developer.chrome.com/docs/extensions/mv3/intro/mv3-migration/) before following such a tutorial.
+- `identity` - OAuth authentication
+- `storage` - Save user preferences
+- `scripting`, `activeTab` - Inject content script
+- `mail.google.com` - Access Gmail DOM
+- `gmail.googleapis.com` - Fetch message headers
 
-> When I make an erroneous change in my service worker, the extension doesn't load! How can I **debug a service worker**?
+## Configuration
 
-Using the debugger if your service worker is not loaded is not possible.
+Right-click the extension icon → **Options** to toggle:
+- Enable buttons in conversation view
+- Enable buttons in thread list view
 
-However, if you want to test some piece of code before putting it in your service worker, you can:
-- load your extension with a working version of the service worker.
-- click on "service worker" on the page _chrome://extensions_. This will open the console attached to the service worker.
-- paste your code in the console and see if any error is logged.
+## Development
 
-Note that in this console, you have access to anything your service worker has access to, including its variables, functions and chrome APIs.
+### File structure
 
-> How do I **uninstall** this extension from my browser?
+```
+gmail-deeplinker/
+├── manifest.json         # Extension configuration
+├── service-worker.js     # Background script (OAuth, API calls)
+├── content.js           # Content script (DOM injection)
+├── content.css          # Button and toast styles
+├── options.html         # Settings page
+├── logo/               # Extension icons
+├── README.md           # This file
+└── ARCHITECTURE.md     # Detailed architecture docs
+```
 
-- Go to the [extensions page](chrome://extensions): chrome://extensions.
-  There should be a card with the name of this extension as title.
-  If you don't see such a card, it means the extension is not installed.
-- Simply click the _Delete_ button at the bottom of the card. Click _ok_ if a popup asks you for confirmation. The extension is now uninstalled.
+### Debugging
 
-> I want to **push my changes to my own repo**, how do I do this?
+**Service worker:**
+- Go to `chrome://extensions`
+- Click "service worker" link under the extension
+- Console opens with service worker logs
 
-- If you forked this repo and cloned your own fork locally, git will push to your fork on your account automatically (i.e. use the command `git push` or `git push origin <your-branch>`).
+**Content script:**
+- Open Gmail
+- Open DevTools (F12)
+- Check Console for content script logs
+- Use "Inspect element" on buttons
 
-- If you downloaded a zip or simply cloned this repo locally, do the following:
-    - Create a github account if you don't already have one and install git on your machine.
-    - Create a new (empty) repo on your github and copy its url.
-    - Open a terminal in the folder where the extension is cloned.
-    - Run the command `git init`, then `git commit -am "Initial commit"`
-    - Run the command `git remote add origin <url-of-your-repo>`
-    - Run `git push -u origin master`. The extension code is now on your repo, on brnach _master_.
-    - If you want, you can make the _master_ branch the default one and delete the _main_ branch in the settings of your repo.
+**OAuth issues:**
+- Check Client ID in manifest.json
+- Verify redirect URI matches extension ID
+- Check Gmail API is enabled in Cloud Console
 
-## External resources
-- [Official feature summary for manifest v3](https://developer.chrome.com/docs/extensions/mv3/intro/mv3-overview/)
-- [Migrating from v2 to v3](https://developer.chrome.com/docs/extensions/mv3/intro/mv3-migration/) + [very useful checklist once you think you are done](https://developer.chrome.com/docs/extensions/mv3/mv3-migration-checklist/)
-- [Excellent write-ups of a migration](https://github.com/kentbrew/learning-manifest-v3)
-- [Another example of a v3 extension (older code)](https://gist.github.com/dotproto/3a328d6b187621b445499ba503599dc0)
+## Limitations
+
+- Requires read access to the message (respects Gmail permissions)
+- Messages without Message-ID header will fail (rare)
+- Gmail DOM selectors may change - uses stable `[data-legacy-*-id]` attributes
+- Only works in Gmail web UI (not mobile apps)
+
+## Privacy & Security
+
+- **No external scripts** - all code runs locally
+- **Read-only access** - only requests `gmail.readonly` scope
+- **No data collection** - headers cached briefly in memory only
+- **CSP enforced** - strict Content Security Policy prevents code injection
+- **Minimal permissions** - only what's needed for core functionality
+
+## Credits
+
+Based on [Chrome Extension v3 Starter](https://github.com/SimGus/chrome-extension-v3-starter) by SimGus.
+
+## License
+
+See LICENSE file.

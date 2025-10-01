@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Gmail Deep Link Copier – Options</title>
+<style>body{font:14px system-ui;margin:16px}label{display:block;margin:.5em 0}</style>
+<h1>Gmail Deep Link Copier</h1>
+<label><input id="conv" type="checkbox"> Enable buttons in conversation view</label>
+<label><input id="list" type="checkbox"> Enable buttons in thread list view</label>
+<script>
+  const conv = document.getElementById('conv');
+  const list = document.getElementById('list');
+  chrome.storage.sync.get({ conv:true, list:true }, v => { conv.checked=v.conv; list.checked=v.list; });
+  [conv,list].forEach(el => el.addEventListener('change', () => chrome.storage.sync.set({ conv:conv.checked, list:list.checked })));
+</script>
