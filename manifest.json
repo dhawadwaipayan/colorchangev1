@@ -4,28 +4,51 @@
   "name": "Gmail Deep Link Copier",
   "version": "1.0.0",
   "description": "Adds a button in Gmail to copy a deep link to the exact message using its RFC822 Message-ID.",
-  "action": { "default_title": "Gmail Deep Link Copier" },
+  "action": {
+    "default_title": "Gmail Deep Link Copier"
+  },
   "icons": {
     "16": "logo/logo-16.png",
     "48": "logo/logo-48.png",
     "128": "logo/logo-128.png"
   },
-  "permissions": ["scripting", "activeTab", "storage", "identity"],
-  "host_permissions": ["https://mail.google.com/*", "https://gmail.googleapis.com/*"],
-  "background": { "service_worker": "service-worker.js", "type": "module" },
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "storage",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://gmail.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
   "content_scripts": [
     {
-      "matches": ["https://mail.google.com/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "https://mail.google.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     }
   ],
   "oauth2": {
-    "client_id": "__REPLACE_WITH_OAUTH_CLIENT_ID__.apps.googleusercontent.com",
-    "scopes": ["https://www.googleapis.com/auth/gmail.readonly"]
+    "client_id": "725178310073-3pjotu2oddko28dipkvk2l8tap76koad.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/gmail.readonly"
+    ]
   },
-  "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none';" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none';"
+  },
   "options_page": "options.html"
 }
